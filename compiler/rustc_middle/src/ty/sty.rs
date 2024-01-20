@@ -29,18 +29,18 @@ use std::ops::Range;
 use ty::{util::IntTypeExt, VariantDiscr};
 
 #[derive(PartialEq, Clone, Eq, TyDecodable, TyEncodable, Debug, Hash, HashStable)]
-pub struct VariantDef {
+pub struct VariantInfo {
     pub did: DefId,
     pub discr: VariantDiscr,
 }
 
-impl PartialOrd for VariantDef {
+impl PartialOrd for VariantInfo {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.did.partial_cmp(&other.did)
     }
 }
 
-impl Ord for VariantDef {
+impl Ord for VariantInfo {
     fn cmp(&self, other: &Self) -> Ordering {
         self.did.cmp(&other.did)
     }
@@ -206,7 +206,7 @@ pub enum TyKind<'tcx> {
 
     /// An enum variant type
     /// The first DefId is the enum type, and the other is the discriminant.
-    Variant(VariantDef),
+    Variant(VariantInfo),
 
     /// A type parameter; for example, `T` in `fn f<T>(x: T) {}`.
     Param(ParamTy),

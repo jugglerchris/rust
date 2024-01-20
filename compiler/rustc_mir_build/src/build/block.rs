@@ -79,6 +79,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         let source_info = this.source_info(span);
         for stmt in stmts {
             let Stmt { kind, opt_destruction_scope } = this.hir.mirror(stmt);
+            debug!("statement of type {:?}", kind);
             match kind {
                 StmtKind::Expr { scope, expr } => {
                     this.block_context.push(BlockFrame::Statement { ignores_expr_result: true });

@@ -1193,8 +1193,10 @@ impl<'a, 'tcx> Visitor<'tcx> for GatherLocalsVisitor<'a, 'tcx> {
 
     // Add explicitly-declared locals.
     fn visit_local(&mut self, local: &'tcx hir::Local<'tcx>) {
+        debug!("Start of visit_local() with local={:?}", local);
         let local_ty = match local.ty {
             Some(ref ty) => {
+                debug!("local.ty some: {:?}", ty);
                 let o_ty = self.fcx.to_ty(&ty);
 
                 let revealed_ty = if self.fcx.tcx.features().impl_trait_in_bindings {

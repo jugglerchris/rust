@@ -2344,6 +2344,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
     fn lower_stmt(&mut self, s: &Stmt) -> SmallVec<[hir::Stmt<'hir>; 1]> {
         let kind = match s.kind {
             StmtKind::Local(ref l) => {
+                debug!("lower_stmt(StmtKind::Local). l={:?}", l);
                 let (l, item_ids) = self.lower_local(l);
                 let mut ids: SmallVec<[hir::Stmt<'hir>; 1]> = item_ids
                     .into_iter()
@@ -2359,6 +2360,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
                         span: s.span,
                     }
                 });
+                debug!("=> ids={:#?}", ids);
                 return ids;
             }
             StmtKind::Item(ref it) => {
@@ -2432,7 +2434,9 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         pat: &'hir hir::Pat<'hir>,
         source: hir::LocalSource,
     ) -> hir::Stmt<'hir> {
+        debug!("stmt_let_pat: pat={:?}, init={:?}", pat, init);
         let local = hir::Local { attrs, hir_id: self.next_id(), init, pat, source, span, ty: None };
+        debug!("local={:?}", local);
         self.stmt(span, hir::StmtKind::Local(self.arena.alloc(local)))
     }
 

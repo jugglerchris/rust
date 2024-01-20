@@ -10,7 +10,7 @@ use rustc_hir::Node;
 use rustc_middle::hir::map::Map;
 use rustc_middle::ty::subst::{GenericArgKind, InternalSubsts};
 use rustc_middle::ty::util::IntTypeExt;
-use rustc_middle::ty::{self, DefIdTree, Ty, TyCtxt, TypeFoldable};
+use rustc_middle::ty::{self, DefIdTree, Ty, TyCtxt, TypeFoldable, VariantInfo};
 use rustc_span::symbol::Ident;
 use rustc_span::{Span, DUMMY_SP};
 
@@ -135,14 +135,20 @@ pub(super) fn opt_const_param_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Option<
 }
 
 pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
+    debug!("type_of: defid={:?}", def_id);
     let def_id = def_id.expect_local();
     use rustc_hir::*;
 
     let hir_id = tcx.hir().local_def_id_to_hir_id(def_id);
+    debug!("type_of: hir_id={:?}", hir_id);
 
     let icx = ItemCtxt::new(tcx, def_id.to_def_id());
+    //debug!("type_of: icx={:?}", icx);
 
-    match tcx.hir().get(hir_id) {
+    let node = tcx.hir().get(hir_id);
+    debug!("Node: {:?}", node);
+
+    match node /*tcx.hir().get(hir_id)*/ {
         Node::TraitItem(item) => match item.kind {
             TraitItemKind::Fn(..) => {
                 let substs = InternalSubsts::identity_for_item(tcx, def_id.to_def_id());
@@ -201,6 +207,7 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
                     tcx.mk_fn_def(def_id.to_def_id(), substs)
                 }
                 ItemKind::Enum(..) | ItemKind::Struct(..) | ItemKind::Union(..) => {
+                    debug!("ItemKind::Enum/Struct/Union branch");
                     let def = tcx.adt_def(def_id);
                     let substs = InternalSubsts::identity_for_item(tcx, def_id.to_def_id());
                     tcx.mk_adt(def, substs)
@@ -273,7 +280,20 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: DefId) -> Ty<'_> {
 
         Node::Ctor(&ref def) | Node::Variant(Variant { data: ref def, .. }) => match *def {
             VariantData::Unit(..) | VariantData::Struct(..) => {
-                tcx.type_of(tcx.hir().get_parent_did(hir_id).to_def_id())
+                debug!("def is {:?}", *def);
+                let parent_did = tcx.hir().get_parent_did(hir_id);
+                //let parent_did = tcx.hir().local_def_id(hir_id);
+                debug!("parent_did={:?}", parent_did);
+                //let new_def_id = parent_did.to_def_id();
+                //debug!("new_def_id={:?}", new_def_id);
+                //let result = tcx.type_of(new_def_id);
+                //debug!("type result={:?}", result);
+                //tcx.type_of(tcx.hir().get_parent_did(hir_id).to_def_id())
+                let variant_def = VariantInfo {
+                    did: parent_did,
+                    discr: 0
+                };
+                tcx.mk_variant(variant_def)
             }
             VariantData::Tuple(..) => {
                 let substs = InternalSubsts::identity_for_item(tcx, def_id.to_def_id());

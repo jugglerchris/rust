@@ -972,8 +972,12 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
         did: DefId,
         item_segment: &hir::PathSegment<'_>,
     ) -> Ty<'tcx> {
+        debug!("ast_path_to_ty: did={:?}, item_segment={:?}", did, item_segment);
         let substs = self.ast_path_substs_for_ty(span, did, item_segment);
-        self.normalize_ty(span, self.tcx().at(span).type_of(did).subst(self.tcx(), substs))
+        let result =
+            self.normalize_ty(span, self.tcx().at(span).type_of(did).subst(self.tcx(), substs));
+        debug!("ast_path_to_ty: result={:?}", result);
+        result
     }
 
     fn conv_object_ty_poly_trait_ref(
@@ -1779,6 +1783,8 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
 
         let mut path_segs = vec![];
 
+        debug!("segments={:?}", segments);
+        debug!("kind={:?}", kind);
         match kind {
             // Case 1. Reference to a struct constructor.
             DefKind::Ctor(CtorOf::Struct, ..) => {
@@ -1794,12 +1800,15 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
             // Case 2. Reference to a variant constructor.
             DefKind::Ctor(CtorOf::Variant, ..) | DefKind::Variant => {
                 let adt_def = self_ty.map(|t| t.ty_adt_def().unwrap());
+                debug!("last={} adt_def: {:?}", last, adt_def);
                 let (generics_def_id, index) = if let Some(adt_def) = adt_def {
+                    debug!("Branch 1");
                     debug_assert!(adt_def.is_enum());
                     (adt_def.did, last)
                 } else if last >= 1 && segments[last - 1].args.is_some() {
                     // Everything but the penultimate segment should have no
                     // parameters at all.
+                    debug!("Branch 2");
                     let mut def_id = def_id;
 
                     // `DefKind::Ctor` -> `DefKind::Variant`
@@ -1808,9 +1817,14 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
                     }
 
                     // `DefKind::Variant` -> `DefKind::Enum`
-                    let enum_def_id = tcx.parent(def_id).unwrap();
-                    (enum_def_id, last - 1)
+                    if true {
+                        let enum_def_id = tcx.parent(def_id).unwrap();
+                        (enum_def_id, last - 1)
+                    } else {
+                        (def_id, last)
+                    }
                 } else {
+                    debug!("Branch 3");
                     // FIXME: lint here recommending `Enum::<...>::Variant` form
                     // instead of `Enum::Variant::<...>` form.
 
@@ -1886,6 +1900,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
                 // Convert "variant type" as if it were a real type.
                 // The resulting `Ty` is type of the variant's enum for now.
                 assert_eq!(opt_self_ty, None);
+                debug!("In other branch of res_to_ty");
 
                 let path_segs =
                     self.def_ids_for_value_path_segments(&path.segments, None, kind, def_id);
@@ -1903,6 +1918,7 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
             Res::Def(kind @ DefKind::Variant, def_id) => {
                 // Convert to the "variant type" as if it were a real type.
                 // The resulting `Ty` is the variant type.
+                debug!("In my branch of res_to_ty");
                 assert_eq!(opt_self_ty, None);
 
                 let path_segs =
@@ -1915,8 +1931,8 @@ impl<'o, 'tcx> dyn AstConv<'tcx> + 'o {
                     },
                 ));
 
-                let PathSeg(def_id, index) = path_segs.last().unwrap();
-                self.ast_path_to_ty(span, *def_id, &path.segments[*index])
+                let PathSeg(_def_id, index) = path_segs.last().unwrap();
+                self.ast_path_to_ty(span, def_id, &path.segments[*index])
             }
             Res::Def(DefKind::TyParam, def_id) => {
                 assert_eq!(opt_self_ty, None);

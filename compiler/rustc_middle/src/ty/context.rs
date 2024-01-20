@@ -2159,6 +2159,11 @@ impl<'tcx> TyCtxt<'tcx> {
     }
 
     #[inline]
+    pub fn mk_variant(self, def: ty::VariantInfo) -> Ty<'tcx> {
+        self.mk_ty(Variant(def))
+    }
+
+    #[inline]
     pub fn mk_foreign(self, def_id: DefId) -> Ty<'tcx> {
         self.mk_ty(Foreign(def_id))
     }

@@ -57,16 +57,20 @@ fn mirror_stmts<'a, 'tcx>(
                 // ignore for purposes of the MIR
             }
             hir::StmtKind::Local(ref local) => {
+                debug!("mirror_stmts: got Local: {:#?}", local);
                 let remainder_scope = region::Scope {
                     id: block_id,
                     data: region::ScopeData::Remainder(region::FirstStatementIndex::new(index)),
                 };
 
                 let mut pattern = cx.pattern_from_hir(&local.pat);
+                debug!("   pattern: {:#?}", pattern);
 
                 if let Some(ty) = &local.ty {
+                    debug!("   ty: {:#?}", ty);
                     if let Some(&user_ty) = cx.typeck_results.user_provided_types().get(ty.hir_id) {
                         debug!("mirror_stmts: user_ty={:?}", user_ty);
+                        debug!("   user_ty: {:#?}", user_ty);
                         pattern = Pat {
                             ty: pattern.ty,
                             span: pattern.span,
@@ -80,6 +84,7 @@ fn mirror_stmts<'a, 'tcx>(
                             }),
                         };
                     }
+                    debug!("Done Local");
                 }
 
                 result.push(StmtRef::Mirror(Box::new(Stmt {
